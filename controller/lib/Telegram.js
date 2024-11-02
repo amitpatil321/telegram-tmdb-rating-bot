@@ -49,14 +49,14 @@ async function handleMessage(messageObj) {
           const movie = movieInfo.data.results[0]; // Get the first movie from results
           const movieTitle = movie.original_title;
           const movieRating = movie.vote_average;
-          const movieOverview = movie.overview;
+          // const movieOverview = movie.overview;
           const posterPath = movie.poster_path; // Assuming this is available
 
           // Construct the full image URL
           const posterUrl = `https://image.tmdb.org/t/p/w500${posterPath}`;
 
           // Prepare message with movie details
-          const messageText = `*Title:* ${movieTitle}\n*IMDb Rating:* ${movieRating}\n\n*Overview:* ${movieOverview}`;
+          const messageText = `*Title:* ${movieTitle}\n*IMDb Rating:* ${movieRating}`;
 
           // Send the message with movie details
           await sendMessage(messageObj, messageText, {
