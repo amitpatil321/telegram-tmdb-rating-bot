@@ -1,5 +1,5 @@
-const axiosInstance = require("../../api/bot.api");
-const utils = require("../../utils/utils");
+const axiosInstance = require("../api/bot.api");
+const utils = require("../utils/utils");
 const stringSimilarity = require("string-similarity");
 const TelegramBot = require("node-telegram-bot-api");
 const bot = new TelegramBot(process.env.TELEGRAM_TOKEN, { polling: true });
