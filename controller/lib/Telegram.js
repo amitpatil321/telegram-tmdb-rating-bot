@@ -9,11 +9,12 @@ async function handleMessage(messageObj) {
     const command = messageText.substr(1);
     switch (command) {
       case "start":
-        return sendMessage(
+        sendMessage(
           messageObj,
-          `Hello *${messageObj?.from?.first_name}*! I am movie bot, enter movies name to get started!`,
+          `Hello! 🎬 Some say I'm better than Google for movie ratings… Okay, nobody says that, but give me a shot anyway!`,
           { parse_mode: "Markdown" }
         );
+        return sendMessage(messageObj, `Enter movie name and press enter`);
       default:
         return sendMessage(messageObj, `Unknown command`);
     }
@@ -102,7 +103,6 @@ bot.on("callback_query", async (callbackQuery) => {
   try {
     const movieDetail = await axiosInstance.getMovieById(movieId);
     const movie = movieDetail.data;
-
     await sendDetails(messageObj, movie);
   } catch (error) {
     await sendMessage(messageObj, "Failed to fetch movie details.");
