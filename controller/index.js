@@ -1,4 +1,4 @@
-const { handleMessage } = require("./lib/telegram");
+const { handleMessage } = require("./telegram");
 
 async function handler(req, method) {
   const { body } = req;
