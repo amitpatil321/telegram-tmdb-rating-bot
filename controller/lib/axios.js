@@ -27,6 +27,15 @@ function getAxiosInstance() {
         return Promise.reject(error);
       }
     },
+    getMovieById(id) {
+      try {
+        return axios.get(
+          `https://api.themoviedb.org/3/movie/${id}?api_key=${process.env.TMDB_API_KEY}`
+        );
+      } catch (error) {
+        return Promise.reject(error);
+      }
+    },
   };
 }
 

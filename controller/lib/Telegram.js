@@ -1,19 +1,7 @@
 const axiosInstance = require("./axios");
 const stringSimilarity = require("string-similarity");
-
-function sendMessage(messageObj, messageText) {
-  if (messageObj) {
-    return axiosInstance.get("sendMessage", {
-      chat_id: messageObj.chat.id,
-      text: messageText,
-    });
-  } else {
-    console.error("Invalid message object or missing chat ID.", messageObj);
-    return Promise.reject(
-      new Error("Invalid message object or missing chat ID.")
-    );
-  }
-}
+const TelegramBot = require("node-telegram-bot-api");
+const bot = new TelegramBot(process.env.TELEGRAM_TOKEN, { polling: true });
 
 async function handleMessage(messageObj) {
   const messageText = messageObj?.text || "";
@@ -21,61 +9,61 @@ async function handleMessage(messageObj) {
     const command = messageText.substr(1);
     switch (command) {
       case "start":
-        return sendMessage(messageObj, "Hello! I'm a bot.");
+        return sendMessage(
+          messageObj,
+          `Hello *${messageObj?.from?.first_name}*! I am movie bot, enter movies name to get started!`,
+          { parse_mode: "Markdown" }
+        );
       default:
-        return sendMessage(messageObj, "Unknown command.");
+        return sendMessage(messageObj, `Unknown command`);
     }
   } else {
-    // Fetch movie data
     const movieInfo = await axiosInstance.getMovie(messageText);
-    if (movieInfo?.status === 200 && movieInfo?.data?.total_results > 0) {
-      const bestMatch = movieInfo.data.results.reduce(
-        (best, movie) => {
-          const similarity = stringSimilarity.compareTwoStrings(
-            movie.title.toLowerCase(),
-            messageText.toLowerCase()
+    if (movieInfo?.status === 200 && movieInfo?.data?.total_results) {
+      if (movieInfo?.data?.total_results > 1) {
+        const movieOptions = movieInfo.data.results
+          .filter((movie) => movie.title && movie.release_date) // Ensure title and release_date exist
+          .slice(0, 5)
+          .map((movie) => [
+            {
+              text: `${movie.title} (${movie.release_date.split("-")[0]})`, // Display year only for clarity
+              callback_data: movie.id.toString(),
+            },
+          ]);
+
+        if (movieOptions.length > 0) {
+          bot.sendMessage(
+            messageObj.chat.id,
+            "Please select anticipated movie",
+            {
+              reply_markup: {
+                inline_keyboard: [...movieOptions],
+              },
+            }
           );
-          return similarity > best.similarity ? { movie, similarity } : best;
-        },
-        { movie: null, similarity: 0 }
-      );
-
-      if (bestMatch.movie) {
-        if (
-          movieInfo.data &&
-          movieInfo.data.results &&
-          movieInfo.data.total_results > 0
-        ) {
-          const movie = movieInfo.data.results[0]; // Get the first movie from results
-          const movieTitle = movie.original_title;
-          const movieRating = movie.vote_average;
-          // const movieOverview = movie.overview;
-          const posterPath = movie.poster_path; // Assuming this is available
-
-          // Construct the full image URL
-          const posterUrl = `https://image.tmdb.org/t/p/w500${posterPath}`;
-
-          // Prepare message with movie details
-          const messageText = `*Title:* ${movieTitle}\n*IMDb Rating:* ${movieRating}`;
-
-          // Send the message with movie details
-          await sendMessage(messageObj, messageText, {
-            parse_mode: "Markdown",
-          });
-
-          // Send the movie poster as a photo
-          return sendPhoto(messageObj, posterUrl);
         }
-      } else {
-        return sendMessage(messageObj, movieInfo.data.results[0]);
-      }
+      } else await sendDetails(messageObj, movieInfo?.data?.results[0]);
+    } else {
+      return sendMessage(
+        messageObj,
+        "No movies found with given title, Make sure you have typed it correctly"
+      );
     }
-    return sendMessage(
-      messageObj,
-      "No details found, make sure you typed the correct name"
-    );
   }
 }
+
+// function sendMessage(messageObj, messageText) {
+//   if (messageObj) {
+//     return axiosInstance.get("sendMessage", {
+//       chat_id: messageObj.chat.id,
+//       text: messageText,
+//     });
+//   } else {
+//     return Promise.reject(
+//       new Error("Invalid message object or missing chat ID.")
+//     );
+//   }
+// }
 
 // Send a formatted text message
 async function sendMessage(messageObj, text, options = {}) {
@@ -83,11 +71,10 @@ async function sendMessage(messageObj, text, options = {}) {
   return axiosInstance.post("sendMessage", {
     chat_id: chatId,
     text: text,
-    ...options, // Spread options to include parse_mode
+    ...options,
   });
 }
 
-// Send a photo to the chat
 async function sendPhoto(messageObj, photoUrl) {
   const chatId = messageObj.chat.id;
   return axiosInstance.post("sendPhoto", {
@@ -95,5 +82,37 @@ async function sendPhoto(messageObj, photoUrl) {
     photo: photoUrl,
   });
 }
+
+async function sendDetails(messageObj, movie) {
+  let messageText = `*Title:* ${movie?.original_title}
+*IMDb Rating:* ${movie?.vote_average.toFixed(1) || "NA"}
+*Release Date:* ${movie.release_date.split("-")[0]}
+*Adult:* ${movie?.adult}
+*Genres:* ${movie?.genres?.map((each) => each?.name).join(", ")}`;
+  await sendMessage(messageObj, messageText, { parse_mode: "Markdown" });
+  if (movie?.poster_path) {
+    const posterUrl = `https://image.tmdb.org/t/p/w500${movie.poster_path}`;
+    await sendPhoto(messageObj, posterUrl);
+  }
+}
+
+bot.on("callback_query", async (callbackQuery) => {
+  const movieId = callbackQuery.data;
+  const messageObj = callbackQuery.message;
+  try {
+    const movieDetail = await axiosInstance.getMovieById(movieId);
+    const movie = movieDetail.data;
+
+    await sendDetails(messageObj, movie);
+  } catch (error) {
+    await sendMessage(messageObj, "Failed to fetch movie details.");
+  }
+
+  bot.answerCallbackQuery(callbackQuery.id);
+});
+
+bot.on("message", (messageObj) => {
+  handleMessage(messageObj);
+});
 
 module.exports = { handleMessage, sendMessage, sendPhoto };

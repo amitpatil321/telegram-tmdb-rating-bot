@@ -4,7 +4,7 @@
   "description": "",
   "main": "index.js",
   "scripts": {
-    "start": "node index.js",
+    "start": "nodemon --env-file=.env index.js",
     "test": "echo \"Error: no test specified\" && exit 1"
   },
   "engines": {
@@ -17,6 +17,7 @@
     "@types/node": "^18.0.6",
     "axios": "^1.7.7",
     "express": "^4.21.1",
+    "node-telegram-bot-api": "^0.66.0",
     "string-similarity": "^4.0.4"
   }
 }
