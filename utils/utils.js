@@ -14,7 +14,6 @@ module.exports = {
     }
   },
   async sendMessage(messageObj, text, options = {}) {
-    console.log(messageObj);
     const chatId = messageObj.chat.id;
     return axiosInstance.post("sendMessage", {
       chat_id: chatId,
