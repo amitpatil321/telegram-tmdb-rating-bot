@@ -29,14 +29,18 @@ module.exports = {
     });
   },
   async sendDetails(messageObj, movie) {
-    let messageText = `*Title:* ${movie?.original_title}
-*IMDb Rating:* ${movie?.vote_average.toFixed(1) || "NA"}
-*Release Date:* ${movie.release_date.split("-")[0]}
-*Genres:* ${movie?.genres?.map((each) => each?.name).join(", ")}`;
-    await this.sendMessage(messageObj, messageText, { parse_mode: "Markdown" });
-    if (movie?.poster_path) {
-      const posterUrl = `https://image.tmdb.org/t/p/w500${movie.poster_path}`;
-      await this.sendPhoto(messageObj, posterUrl);
-    }
+    if (messageObj) {
+      let messageText = `*Title:* ${movie?.original_title}
+  *IMDb Rating:* ${movie?.vote_average.toFixed(1) || "NA"}
+  *Release Date:* ${movie.release_date.split("-")[0]}
+  *Genres:* ${movie?.genres?.map((each) => each?.name).join(", ")}`;
+      await this.sendMessage(messageObj, messageText, {
+        parse_mode: "Markdown",
+      });
+      if (movie?.poster_path) {
+        const posterUrl = `https://image.tmdb.org/t/p/w500${movie.poster_path}`;
+        await this.sendPhoto(messageObj, posterUrl);
+      }
+    } else this.sendMessage(messageObj, `Unexpected error!`);
   },
 };
